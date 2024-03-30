@@ -47,6 +47,8 @@ def erasure_channel_matrix(xdim=2,e=0.2,epsilson=0.0000001):
     P[1][2] = e
     return(np.transpose(P))
 
+
+Custom_channel_matrix = np.array([[0.6,0.3,0.1],[0.7,0.1,0.2],[0.5,0.05,0.45]])
 #---------------------------------------
 
 #Function to generate Prior

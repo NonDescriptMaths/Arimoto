@@ -1,6 +1,3 @@
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/numpy.h>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -8,7 +5,6 @@
 #include <algorithm>
 #include <tuple>
 
-namespace py = pybind11;
 
 double calculateCapacity(const std::vector<double>& p, const std::vector<std::vector<double>>& P, const std::vector<std::vector<double>>& W) {
     double C = 0;
@@ -32,8 +28,24 @@ std::tuple<std::vector<double>, double, std::vector<std::vector<double>>> arimit
     std::vector<std::vector<double>> p_route;
     p_route.push_back(p);
 
+    std::cout << "Prior: ";
+    for (double val : prior) {
+        std::cout << val << " ";
+    }
+    std::cout << "\n";
+    std::cout << "Channel Matrix: \n";
+
+    for (const auto &row : P) {
+        for (double val : row) {
+            std::cout << val << " ";
+        }
+        std::cout << "\n";
+    }
+
 
     for (int iter = 0; iter < max_iterations; ++iter) {
+        std::cout << "Iteration: " << iter << "\n";
+
         // Maximise I(p,W;P) over W
         for (int i = 0; i < n; ++i) {
             for (int j = 0; j < m; ++j) {
@@ -71,9 +83,24 @@ std::tuple<std::vector<double>, double, std::vector<std::vector<double>>> arimit
 
     double C = calculateCapacity(p, P, W);
     
+    for (double val : p) {
+        std::cout << val << " ";
+    }
+    std::cout << std::endl;
     return std::make_tuple(p, C, p_route);
 }
 
-PYBIND11_MODULE(CArimito, m) {
-    m.def("arimito", &arimito, "Arimoto algorithm");
+int main() {
+    std::vector<std::vector<double>> P = {{0.6, 0.7, 0.5}, {0.3, 0.1, 0.05}, {0.1, 0.2, 0.45}};
+    std::vector<double> prior = {0.2, 0.2, 0.6};
+    auto [p, C, p_route] = arimito(P, prior);
+    std::cout << "Capacity: " << C << "\n";
+    std::cout << "ArgMax: ";
+    for (double val : p) {
+        std::cout << val << " ";
+    }
+
+    std::cout << "\n";
+
+    return 0;
 }

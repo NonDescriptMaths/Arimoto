@@ -6,7 +6,7 @@ output:
   html_document: default
 
 ---
-This case study will introduce an important algorithm for data transmission and channel capacity, then demonstrating how we have used `C++` compatability to optimise our computations over large dimensional (and sample size) data. Unfortunately we began work in python so this will be the main language we use, including its compatability with `C++`. However we hope that this will still be educational and should compliment the topic on implimenting `R` and `C++` with the `Rccp` package.
+This case study will introduce an important algorithm for data transmission and channel capacity, then demonstrating how we have used `C++` compatability to optimise our computations over large dimensional (and sample size) data. Unfortunately we began work in python so this will be the main language we use, including its compatability with `C++`. However we hope that this will still be educational and should compliment the topic on implimenting `R` and `C++` with the `Rccp` package. We will be using multiple python and c++ files during this study, the full code can be found [here](https://github.com/NonDescriptMaths/Arimoto).
 
 ```{r setup, include=FALSE}
 library(reticulate)
@@ -60,7 +60,7 @@ def arimito(prior,
     #Initialise the prior and Phi
     p = prior
     p_route = np.array([p])
-    P = channel_matrix
+    P = channel_matrix.transpose()
     W = np.zeros((m,n))
     if display_results:
         print(f"Prior for p(x): {p}")
@@ -102,6 +102,7 @@ def arimito(prior,
         print("-------------------")
     return C,p,p_route
 #---------------------------------------
+#
 ```
 
 As a demonstration of the algorithm, we can consider a simple binary channel with a transition matrix $P$ given by:
@@ -125,15 +126,13 @@ end = time.time()
 print(f"Time taken: {end-start} seconds")
 ```
 
-The function is defined also in the `Arimito.py` file, which interfaces with other files which we will use in this case study, the link to the repo containing them can be found [here](www.github.com).
-
 Our search space, for an $n$-ary input space, is an $(n-1)$-simplex, and of course as the dimension of the input space increases, the number of iterations required to converge increases too. Below we run the algorithm for a 3-ary input space, with 3 different priors and a random channel matrix, and plot the path taken by the algorithm to converge.
 
 ```{python}
 import Arimito_Generator as Generator
 import Arimito_Convergence as Convergence
 
-random.seed(123) 
+random.seed(124) 
 
 channel_Matrix = Generator.random_channel_matrix(xdim = 3,ydim = 3)
 start = time.time()
@@ -142,14 +141,18 @@ end = time.time()
 print(f"Time taken: {end-start} seconds")
 ```
 
-We also plotted the geodesic path (with respect to the fisher information matrix) along the simplex to study how well the algorithm converges. One thing you may notice in the above example is that the optimal solution lies on the boundary of the simplex, i.e one of the probabilities is 0. This might seem kind of weird, since we previously discussed that we have an infinite family of solutions at $p=(1/3,1/3,1/3)$. The question became, what does a typical solution look like? We answer this question by simulating a collection of random channel matrices and priors, and then plotting the heatmap of solutions. This is where computational complexity begins to creep in, as the below simulation took my computer ~2 minutes, with 1000 iterations and `xdim = 3`.  We have only plotted `n=100,xdim=3` for this case to make knitting to a pdf practical, plus you get to see a better picture at the end! For the below code we use the package `ternary` which helps with heatmaps on simplexes.
+We also plotted the geodesic path (with respect to the fisher information matrix) along the simplex to study how well the algorithm converges. One thing you may notice in the above example is that the optimal solution lies on the boundary of the simplex, i.e one of the probabilities is 0. This might seem kind of weird, since we previously discussed that we have an infinite family of solutions at $p=(1/3,1/3,1/3)$. The question became, what does a typical solution look like? We answer this question by simulating a collection of random channel matrices and priors, and then plotting the heatmap of solutions. Note that since the mutual information is convex, the choice of prior should not matter. This is where computational complexity begins to creep in, as the simulation took my computer ~2 minutes, with 1000 iterations and `xdim = 3`.  We have only plotted `n=100,xdim=3` for this case to make knitting to a pdf practical, plus you get to see a better picture at the end! For the below code we use the package `ternary` which helps with heatmaps on simplexes.
 
 ```{python}
 import ternary
 
 start = time.time()
 #Create function which performs arimito multiple times and outputs the distribution
-def arimito_multiple(prior,log_base: float = 2, thresh: float = 1e-12, maxiter: int = 1e3, n: int = 1):
+def arimito_multiple(prior,
+                    log_base: float = 2, 
+                    thresh: float = 1e-12, 
+                    maxiter: int = 1e3, 
+                    n: int = 1):
     '''
     Perform the arimito algorithm n times and output the distribution
     '''
@@ -206,7 +209,7 @@ Since the arimito algorithm is fairly rudamental (its just a for loop where we u
 
 # Python Interface to C++
 
-Python has a slightly different method of interfacing with `C++`, which come from a few different packages, we  chose to use `pybind11` as that's what google said was good, plus it works so that's good. All it requires is installation and inclusion of a few lines of code in your `C++` code. Firstly we pip install.
+Python has a slightly different method of interfacing with `C++`, which comes from a few different packages, we  chose to use `pybind11` as that's what google said was good, plus it works so that's good. All it requires is installation and inclusion of a few lines of code in your `C++` code. Firstly we pip install.
 
 ```{bash,eval = FALSE}
 pip install pybind11
@@ -235,15 +238,15 @@ PYBIND11_MODULE(CArimito, m) {
 }
 ```
 
-In our context we specified `CArimito` to be the name of our 'package' and the function `arimito` to be the function we want to export to python. With this setup, pybind does all the work for us, so long as we compile. Which we do by going to the working directory of our `.cpp` file and running:
+This tells `pybind` to create a function called arimito in the module `CArimito`. With this setup, pybind does all the work for us, so long as we compile. Which we do by going to the working directory of our `.cpp` file and running:
 
 ```{bash,eval = FALSE}
 c++ -O3 -Wall -shared -std=c++11 -fPIC `python3 
--m pybind11 --includes` Arimito.cpp 
+-m pybind11 --includes` Arimito_Quick.cpp 
 -o CArimito`python3-config --extension-suffix`
 ```
 
-in the terminal. This creates `CArimito.cpython-310-x86_64-linux-gnu.so` which can be imported into python via:
+all on one line in the terminal. This creates `CArimito.cpython-310-x86_64-linux-gnu.so` which can be imported into python via:
     
 ```{python}
 import CArimito
@@ -304,7 +307,10 @@ def Carimito(prior,
 ```
 
 
-As a demonstration, lets recreate the output from our intial symmetric examples and three random prior examples.
+
+# Results
+
+As a demonstration, lets begin by recreating the output from our intial symmetric examples and three random prior examples.
 
 ```{python}
 Channel_Matrix = Generator.symmetric_channel_matrix(xdim = 2,ydim =2,e= 0.1)
@@ -312,6 +318,7 @@ start = time.time()
 C,p,p_route = Arimito.Carimito(prior = np.array([0.8,0.2]),channel_matrix = Channel_Matrix)
 end = time.time()
 print(f"Time taken: {end-start} seconds")
+
 ```
 
 Hilariously, in this simple case the difference is by a measily 0.001, lets try our 3 random priors examples and see the result:
@@ -324,11 +331,118 @@ end = time.time()
 print(f"Time taken: {end-start} seconds")
 ```
 
-We're working at around about 4x as fast. Which should be useful with large simulations. Let's put this into practice and get a good image of how our data looks.
+We're working at around about 4x as fast. Which should be useful with large simulations. Let's put this into practice and get a good image of how our data looks. We reconstruct our `arimito_multiple` function to use the C++ version of the algorithm and plot the heatmap of the results:
 
-# C++ Interface to bluecrystal
+```{python}
 
-# Results
+import ternary
+
+start = time.time()
+#Create function which performs arimito multiple times and outputs the distribution
+def arimito_multiple(prior,
+                    log_base: float = 2, 
+                    thresh: float = 1e-12, 
+                    maxiter: int = 1e3, 
+                    n: int = 1):
+    '''
+    Perform the arimito algorithm n times and output the distribution
+    '''
+
+    p = []
+    for i in range(n):
+        random_binary_channel = Generator.random_channel_matrix(xdim = 3,
+                                                                ydim = 3)
+        p.append(Arimito.Carimito(prior,
+                                random_binary_channel,
+                                log_base=log_base,
+                                thresh=thresh,
+                                maxiter=maxiter,
+                                display_results = False)[1])
+    return p
 
 
+#Perform the arimito algorithm multiple times
+p = arimito_multiple(prior = np.array([0.2,0.3,0.5]),n=1000)
 
+p = np.array(p)*100
+
+heatmap_data = {}
+
+for i in range(p.shape[0]):
+    # Round the points to 2 decimal places and convert to a tuple
+    point = tuple(np.round(p[i, :], 1))
+    # Add the point to the heatmap data
+    if point in heatmap_data:
+        heatmap_data[point] += 1
+    else:
+        heatmap_data[point] = 1
+
+# Create the figure
+fig, tax = ternary.figure(scale=100)
+# Normalize the values in the heatmap data
+max_value = max(heatmap_data.values())
+heatmap_data = {key: value / max_value for key, value in heatmap_data.items()}
+# Plot the heatmap
+tax.heatmap(heatmap_data, style="hexagonal", use_rgba=False)
+
+# Set labels
+tax.set_title("Heatmap of Convergence of Arimito Algorithm")
+tax.left_corner_label("$p_0$")
+tax.right_corner_label("$p_1$")
+tax.top_corner_label("$p_2$")
+
+# Remove default Matplotlib Axes
+tax.clear_matplotlib_ticks()
+
+ternary.plt.show()
+end = time.time()
+
+print(f"Time taken: {end-start} seconds")
+```
+
+For context, I didn't actually realise I had included `n=1000` in the above code, because it compiled as quick as python did for `n=100`. Now we can increase n drastically to get a solid density plot.
+
+```{python}
+#Perform the arimito algorithm multiple times
+p = arimito_multiple(prior = np.array([0.2,0.3,0.5]),n=30000)
+
+p = np.array(p)*1000
+
+heatmap_data = {}
+
+for i in range(p.shape[0]):
+    # Round the points to 2 decimal places and convert to a tuple
+    point = tuple(np.round(p[i, :], 0))
+    # Add the point to the heatmap data
+    if point in heatmap_data:
+        heatmap_data[point] += 1
+    else:
+        heatmap_data[point] = 1
+
+# Create the figure
+fig, tax = ternary.figure(scale=1000)
+# Calculate the maximum value in the heatmap data
+max_value = max(heatmap_data.values())
+
+# Normalize the heatmap data
+heatmap_data = {key: value / max_value for key, value in heatmap_data.items()}
+
+# Plot the heatmap
+tax.heatmap(heatmap_data, style="hexagonal", use_rgba=False)
+
+# Set labels
+tax.set_title("Heatmap of Convergence of Arimito Algorithm")
+tax.left_corner_label("$p_0$")
+tax.right_corner_label("$p_1$")
+tax.top_corner_label("$p_2$")
+
+# Remove default Matplotlib Axes
+tax.clear_matplotlib_ticks()
+
+ternary.plt.show()
+end = time.time()
+
+print(f"Time taken: {end-start} seconds")
+```
+
+We can see much clearer distribution of data. Additionally we can see that the accumulation of data is often in the middle of the boundaries. Which is really cool! For my own research I will be continuing to study this property, as it has been studied in other works that zero values (boundary solutions) for capacity are known for continuous channel distributions, but not much is known for discrete. Hopefully this has been a quaint adventure into information theory that compliments our work on interfacing `R` with `C++` with `Rcpp`, demonstrating how the technique of segmenting code for optimisation with C carries between many languages.

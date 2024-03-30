@@ -40,7 +40,7 @@ def arimito(prior,
     W = np.zeros((m,n))
     if display_results:
         print(f"Prior for p(x): {p}")
-        print(f"Channel matrix p(y|x): \n {channel_matrix}")
+        print(f"Channel matrix p(y|x): \n {P}")
 
     for iter in range(int(maxiter)):
         q = np.zeros(m)
@@ -48,14 +48,12 @@ def arimito(prior,
         for i in range(n):
             for j in range(m):
                 W[j][i] = (P[i,j]*p[j])/np.dot(P[i,:],p)
-            
         #Maximise I(p,W;P) over p
         r = np.zeros(m)
         for j in range(m):
             r[j] = np.exp(np.dot(P[:,j],np.log(W[j,:])))
         for i in range(m):
             q[i] = r[i]/np.sum(r)
-
         #Add to array of p values
         p_route = np.append(p_route,[q],axis=0)
 
@@ -111,12 +109,13 @@ def Carimito(prior,
     n,m = channel_matrix.shape
     m_1 = prior.shape[0]
     assert m == m_1
+    channel_matrix = channel_matrix.transpose()
     if display_results:
         print(f"Prior for p(x): {prior}")
         print(f"Channel matrix p(y|x): \n {channel_matrix}")
     prior_list = prior.tolist()
     channel_matrix_list = channel_matrix.tolist()
-    p,C,p_route = CArimito.arimito(channel_matrix_list,prior_list,1000,1e-12)
+    p,C,p_route = CArimito.arimito(channel_matrix_list,prior_list,1000,1e-16)
     p = np.array(p)
     p_route = np.array(p_route)
     if display_results:    
@@ -165,14 +164,12 @@ def ternary_symmetric_channel_simulation(prior = np.array([0.2,0.2,0.6]),e=0.2):
 
 def random_channel_simulation(prior = np.array([0.2,0.2,0.6]),xdim=3,ydim=3):
     P = Generator.random_channel_matrix(xdim=xdim,ydim=ydim)
-    C,p,p_route = arimito(prior,P)
-    print('True Capacity: ', 'unknown')
+    C,p,p_route = Carimito(prior,P)
     return C,p,p_route
 
 def custom_channel_simulation(prior = np.array([[0.2,0.2,0.6]])):
     P = np.array([[0.1,0.3,0.6],[0.8,0.4,0.2],[0.1,0.3,0.2]])
-    C,p,p_route = arimito(prior,P)
-    print('True Capacity: ', 'unknown')
+    C,p,p_route = Carimito(prior,P)
     return C,p,p_route
 
 def erase_channel_simulation(prior = np.array([0.2,0.8]),e=0.2):
@@ -190,7 +187,14 @@ def erase_channel_simulation(prior = np.array([0.2,0.8]),e=0.2):
 
 #ternary_symmetric_channel_simulation(prior = np.array([0.2,0.8]),e=0.2)
 
-#erase_channel_simulation()
+erase_channel_simulation()
 
 #binary_symmetric_channel_simulation(prior=np.array([0.2,0.8]),e=0.1)
-    
+
+#Custom_channel_matrix = np.array([[0.6,0.3,0.1],[0.7,0.1,0.2],[0.5,0.05,0.45]])
+#---------------------------------------
+ 
+#arimito(channel_matrix = Custom_channel_matrix,prior =np.array([0.2,0.2,0.6]))
+#Carimito(channel_matrix = Custom_channel_matrix,prior =np.array([0.2,0.2,0.6]))
+
+#random_channel_simulation(prior = np.array([0.2,0.2,0.6]),xdim=3,ydim=3)
