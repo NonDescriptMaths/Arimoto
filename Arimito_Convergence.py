@@ -283,8 +283,8 @@ def simulate_distribution_quarterly(n=2000, ydim = 4,bins=8):
 #plot_path_ternary(channel_matrix = Generator.symmetric_channel_matrix(xdim=3,ydim=3,e=0.2),n=3,include_geodesic=True)
     
 
-#plot_path_quarterly(n=30,include_geodesic=True)
+#plot_path_quarterly(n=100,include_geodesic=True)
     
 #simulate_distribution_binary(n=20)
 
-#simulate_distribution_quarterly(n=2000)
+simulate_distribution_quarterly(n=2000)

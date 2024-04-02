@@ -403,6 +403,7 @@ print(f"Time taken: {end-start} seconds")
 For context, I didn't actually realise I had included `n=1000` in the above code, because it compiled as quick as python did for `n=100`. Now we can increase n drastically to get a solid density plot.
 
 ```{python}
+random.seed(1234)
 #Perform the arimito algorithm multiple times
 p = arimito_multiple(prior = np.array([0.2,0.3,0.5]),n=30000)
 
@@ -446,3 +447,41 @@ print(f"Time taken: {end-start} seconds")
 ```
 
 We can see much clearer distribution of data. Additionally we can see that the accumulation of data is often in the middle of the boundaries. Which is really cool! For my own research I will be continuing to study this property, as it has been studied in other works that zero values (boundary solutions) for capacity are known for continuous channel distributions, but not much is known for discrete. Hopefully this has been a quaint adventure into information theory that compliments our work on interfacing `R` with `C++` with `Rcpp`, demonstrating how the technique of segmenting code for optimisation with C carries between many languages.
+
+```{python}
+
+import plotly.graph_objects as go
+
+# Prepare data for plotly
+x = [point[0] for point in heatmap_data.keys()]
+y = [point[1] for point in heatmap_data.keys()]
+z = [point[2] for point in heatmap_data.keys()]
+intensity = list(heatmap_data.values())
+
+# Create a ternary scatter plot
+fig = go.Figure(go.Scatterternary({
+    'mode': 'markers',
+    'a': x,
+    'b': y,
+    'c': z,
+    'marker': {
+        'symbol': 100,
+        'color': intensity,
+        'cmin': 0,
+        'cmax': max(intensity),
+        'colorscale': 'Viridis'
+    }
+}))
+
+fig.update_layout({
+    'ternary': {
+        'sum': 1,
+        'aaxis': {'title': 'p0', 'min': 0.01, 'linewidth': 2, 'ticks': 'outside'},
+        'baxis': {'title': 'p1', 'min': 0.01, 'linewidth': 2, 'ticks': 'outside'},
+        'caxis': {'title': 'p2', 'min': 0.01, 'linewidth': 2, 'ticks': 'outside'}
+    },
+    'title': "Heatmap of Convergence of Arimoto Algorithm",
+})
+
+fig.show()
+```
