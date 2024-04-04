@@ -148,8 +148,7 @@ import ternary
 
 start = time.time()
 #Create function which performs arimito multiple times and outputs the distribution
-def arimito_multiple(prior,
-                    log_base: float = 2, 
+def arimito_multiple(log_base: float = 2, 
                     thresh: float = 1e-12, 
                     maxiter: int = 1e3, 
                     n: int = 1):
@@ -157,15 +156,23 @@ def arimito_multiple(prior,
     Perform the arimito algorithm n times and output the distribution
     '''
 
-    p = []
+    p_vals = []
     for i in range(n):
+        prior = Generator.random_prior(xdim = 3)
         random_binary_channel = Generator.random_channel_matrix(xdim = 3,ydim = 3)
-        p.append(arimito(prior,random_binary_channel,log_base=log_base,thresh=thresh,maxiter=maxiter,display_results = False)[1])
-    return p
+        C,p,p_route = Arimito.arimito(prior,
+                                random_binary_channel,
+                                log_base=log_base,
+                                thresh=thresh,
+                                maxiter=maxiter,
+                                display_results = False)
+        if max(p) != 0:
+            p_vals.append(p)
+    return p_vals
 
 
 #Perform the arimito algorithm multiple times
-p = arimito_multiple(prior = np.array([0.2,0.3,0.5]),n=100)
+p = arimito_multiple(n=1000)
 
 p = np.array(p)*100
 
@@ -339,8 +346,7 @@ import ternary
 
 start = time.time()
 #Create function which performs arimito multiple times and outputs the distribution
-def arimito_multiple(prior,
-                    log_base: float = 2, 
+def Carimito_multiple(log_base: float = 2, 
                     thresh: float = 1e-12, 
                     maxiter: int = 1e3, 
                     n: int = 1):
@@ -348,29 +354,32 @@ def arimito_multiple(prior,
     Perform the arimito algorithm n times and output the distribution
     '''
 
-    p = []
+    p_vals = []
     for i in range(n):
+        prior = Generator.random_prior(xdim = 3)
         random_binary_channel = Generator.random_channel_matrix(xdim = 3,
                                                                 ydim = 3)
-        p.append(Arimito.Carimito(prior,
+        C,p,p_route = Arimito.Carimito(prior,
                                 random_binary_channel,
                                 log_base=log_base,
                                 thresh=thresh,
                                 maxiter=maxiter,
-                                display_results = False)[1])
-    return p
+                                display_results = False)
+        if max(p) != 0:
+            p_vals.append(p)
+    return p_vals
 
 
 #Perform the arimito algorithm multiple times
-p = arimito_multiple(prior = np.array([0.2,0.3,0.5]),n=1000)
+p = Carimito_multiple(n=1000)
 
-p = np.array(p)*100
+p = np.array(p)*30
 
 heatmap_data = {}
 
 for i in range(p.shape[0]):
     # Round the points to 2 decimal places and convert to a tuple
-    point = tuple(np.round(p[i, :], 1))
+    point = tuple(np.round(p[i, :], 0))
     # Add the point to the heatmap data
     if point in heatmap_data:
         heatmap_data[point] += 1
@@ -378,7 +387,7 @@ for i in range(p.shape[0]):
         heatmap_data[point] = 1
 
 # Create the figure
-fig, tax = ternary.figure(scale=100)
+fig, tax = ternary.figure(scale=30)
 # Normalize the values in the heatmap data
 max_value = max(heatmap_data.values())
 heatmap_data = {key: value / max_value for key, value in heatmap_data.items()}
@@ -405,9 +414,9 @@ For context, I didn't actually realise I had included `n=1000` in the above code
 ```{python}
 random.seed(1234)
 #Perform the arimito algorithm multiple times
-p = arimito_multiple(prior = np.array([0.2,0.3,0.5]),n=30000)
+p = Carimito_multiple(n=4000)
 
-p = np.array(p)*1000
+p = np.array(p)*30
 
 heatmap_data = {}
 
@@ -421,7 +430,7 @@ for i in range(p.shape[0]):
         heatmap_data[point] = 1
 
 # Create the figure
-fig, tax = ternary.figure(scale=1000)
+fig, tax = ternary.figure(scale=30)
 # Calculate the maximum value in the heatmap data
 max_value = max(heatmap_data.values())
 
@@ -447,41 +456,3 @@ print(f"Time taken: {end-start} seconds")
 ```
 
 We can see much clearer distribution of data. Additionally we can see that the accumulation of data is often in the middle of the boundaries. Which is really cool! For my own research I will be continuing to study this property, as it has been studied in other works that zero values (boundary solutions) for capacity are known for continuous channel distributions, but not much is known for discrete. Hopefully this has been a quaint adventure into information theory that compliments our work on interfacing `R` with `C++` with `Rcpp`, demonstrating how the technique of segmenting code for optimisation with C carries between many languages.
-
-```{python}
-
-import plotly.graph_objects as go
-
-# Prepare data for plotly
-x = [point[0] for point in heatmap_data.keys()]
-y = [point[1] for point in heatmap_data.keys()]
-z = [point[2] for point in heatmap_data.keys()]
-intensity = list(heatmap_data.values())
-
-# Create a ternary scatter plot
-fig = go.Figure(go.Scatterternary({
-    'mode': 'markers',
-    'a': x,
-    'b': y,
-    'c': z,
-    'marker': {
-        'symbol': 100,
-        'color': intensity,
-        'cmin': 0,
-        'cmax': max(intensity),
-        'colorscale': 'Viridis'
-    }
-}))
-
-fig.update_layout({
-    'ternary': {
-        'sum': 1,
-        'aaxis': {'title': 'p0', 'min': 0.01, 'linewidth': 2, 'ticks': 'outside'},
-        'baxis': {'title': 'p1', 'min': 0.01, 'linewidth': 2, 'ticks': 'outside'},
-        'caxis': {'title': 'p2', 'min': 0.01, 'linewidth': 2, 'ticks': 'outside'}
-    },
-    'title': "Heatmap of Convergence of Arimoto Algorithm",
-})
-
-fig.show()
-```

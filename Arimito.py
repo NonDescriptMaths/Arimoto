@@ -42,6 +42,7 @@ def arimito(prior,
         print(f"Prior for p(x): {p}")
         print(f"Channel matrix p(y|x): \n {P}")
 
+    converged = False
     for iter in range(int(maxiter)):
         q = np.zeros(m)
         #Maximise I(p,W;P) over W
@@ -54,14 +55,15 @@ def arimito(prior,
             r[j] = np.exp(np.dot(P[:,j],np.log(W[j,:])))
         for i in range(m):
             q[i] = r[i]/np.sum(r)
+
         #Add to array of p values
         p_route = np.append(p_route,[q],axis=0)
 
         #Check if we have converged
         if np.linalg.norm(q-p) < thresh:
+            converged = True
             break
         p = q
-
     #Calculate the capacity
     C = 0
     for i in range(n):
@@ -69,6 +71,10 @@ def arimito(prior,
             if p[j] > 0:
                 C += p[j]*P[i][j]*np.log(W[j][i]/p[j])
     C = C/np.log(log_base)
+    if not converged:
+        p = np.zeros(m)
+        C = 0
+        
     if display_results:
         print('Max Capacity: ', C)
         print('ArgMax: ', p)
@@ -178,6 +184,15 @@ def erase_channel_simulation(prior = np.array([0.2,0.8]),e=0.2):
     print('True Capacity: ', 1-e)
     print("-------------------")
 
+#---------------------------------------
+## Sparsity Measure
+    
+def sparsity_measure(p):
+    # Count the number of non-zero elements in p
+    non_zero_elements = np.count_nonzero(p)
+    # Calculate the sparsity
+    sparsity = non_zero_elements / len(p)
+    return sparsity
 
 #---------------------------------------
 ## Examples
@@ -187,14 +202,14 @@ def erase_channel_simulation(prior = np.array([0.2,0.8]),e=0.2):
 
 #ternary_symmetric_channel_simulation(prior = np.array([0.2,0.8]),e=0.2)
 
-erase_channel_simulation()
+#erase_channel_simulation()
 
 #binary_symmetric_channel_simulation(prior=np.array([0.2,0.8]),e=0.1)
 
 #Custom_channel_matrix = np.array([[0.6,0.3,0.1],[0.7,0.1,0.2],[0.5,0.05,0.45]])
 #---------------------------------------
- 
 #arimito(channel_matrix = Custom_channel_matrix,prior =np.array([0.2,0.2,0.6]))
 #Carimito(channel_matrix = Custom_channel_matrix,prior =np.array([0.2,0.2,0.6]))
 
-#random_channel_simulation(prior = np.array([0.2,0.2,0.6]),xdim=3,ydim=3)
+#C,p,P_route = random_channel_simulation(prior = Generator.random_prior(xdim = 100),xdim=100,ydim=100)
+#print("Sparsity Measure: ", sparsity_measure(p))

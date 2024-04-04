@@ -283,8 +283,32 @@ def simulate_distribution_quarterly(n=2000, ydim = 4,bins=8):
 #plot_path_ternary(channel_matrix = Generator.symmetric_channel_matrix(xdim=3,ydim=3,e=0.2),n=3,include_geodesic=True)
     
 
-#plot_path_quarterly(n=100,include_geodesic=True)
+#plot_path_quarterly(n=1,include_geodesic=True)
     
 #simulate_distribution_binary(n=20)
 
-simulate_distribution_quarterly(n=2000)
+#simulate_distribution_quarterly(n=2000)
+    
+def Carimito_multiple(log_base: float = 2, 
+                    thresh: float = 1e-12, 
+                    maxiter: int = 1e3, 
+                    n: int = 1):
+    '''
+    Perform the arimito algorithm n times and output the distribution
+    '''
+
+    p_vals = []
+    for i in range(n):
+        prior = Generator.random_prior(xdim = 3)
+        random_binary_channel = Generator.random_channel_matrix(xdim = 3,
+                                                                ydim = 3)
+        C,p,p_route = arimito.Carimito(prior,
+                                random_binary_channel,
+                                log_base=log_base,
+                                thresh=thresh,
+                                maxiter=maxiter,
+                                display_results = False)
+        if max(p) != 0:
+            p_vals.append(p)
+    return p_vals
+

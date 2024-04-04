@@ -32,7 +32,7 @@ std::tuple<std::vector<double>, double, std::vector<std::vector<double>>> arimit
     std::vector<std::vector<double>> p_route;
     p_route.push_back(p);
 
-
+    bool converged = false;
     for (int iter = 0; iter < max_iterations; ++iter) {
         // Maximise I(p,W;P) over W
         for (int i = 0; i < n; ++i) {
@@ -63,14 +63,18 @@ std::tuple<std::vector<double>, double, std::vector<std::vector<double>>> arimit
         norm = sqrt(norm);
 
         if (norm < thresh) {
+            converged = true;
             break;
         }
-
+        
         p = q;
     }
-
-    double C = calculateCapacity(p, P, W);
     
+    double C = calculateCapacity(p, P, W);
+    if (!converged) {
+            std::fill(p.begin(), p.end(), 0.0);
+            double C = 0.0;
+        }
     return std::make_tuple(p, C, p_route);
 }
 
